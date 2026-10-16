@@ -1,0 +1,159 @@
+{
+  "$schema": "/home/agent/.config/opencode/skills/plugin/open-bot.plugin.schema.json",
+  "id": "news-trader",
+  "name": "News Trader",
+  "version": "beta-3",
+  "description": "Analyse les actualités financières, détecte les événements qui font bouger les actions (résultats, fusions, FDA, guidance, analystes) et simule des achats/ventes (paper trading) avec gestion du risque, signaux scorés, digest quotidien en français et tableau de bord bourse.",
+  "author": "shpaw415",
+  "repo": "shpaw415/news-trader",
+  "category": "finance",
+  "tags": [
+    "bourse",
+    "trading",
+    "actualités",
+    "finance",
+    "simulation",
+    "actions"
+  ],
+  "permissions": {
+    "notifications": true,
+    "vaultCreate": [
+      "market-data-key"
+    ]
+  },
+  "files": [
+    {
+      "name": "engine",
+      "source": "engine/news-trader-engine.ts",
+      "exec": true
+    },
+    {
+      "name": "server.ts",
+      "source": "server/server.ts",
+      "exec": true
+    },
+    {
+      "name": "index.html",
+      "source": "server/index.html",
+      "exec": false
+    },
+    {
+      "name": "app.ts",
+      "source": "server/app.ts",
+      "exec": false
+    },
+    {
+      "name": "styles.css",
+      "source": "server/styles.css",
+      "exec": false
+    }
+  ],
+  "skills": [
+    {
+      "name": "news-trader",
+      "description": "Bourse simulée pilotée par les nouvelles : signaux, portefeuille papier, ordres simulés, digest de marché. Déclencheur : toute demande d'analyse boursière, de trade simulé, d'état du portefeuille news-trader, ou « quelle action acheter ».",
+      "body": "# news-trader — bourse simulée pilotée par les nouvelles\n\nSimulation d'achat/vente d'actions (paper trading) déclenchée par les actualités. **Aucun argent réel, jamais.**\n\n## Outil principal\n`ob-plugin-news-trader-engine` (sous-commandes) :\n- `scan` — scraper les nouvelles, générer les signaux (exécuter les ordres si auto-trade activé)\n- `tick` — rafraîchir les cours, appliquer stop-loss / take-profit\n- `trade buy|sell SYM [qty] [--reason \"…\"]` — ordre papier manuel\n- `close SYM` — clôturer une position au marché\n- `report` — rapport digest en français (portefeuille, positions, signaux)\n- `backtest [jours]` — rejouer les signaux longs passés (achat → aujourd'hui)\n- `watchlist [add|remove SYM]` — liste de suivi\n- `reset --yes` — remettre le portefeuille au capital de départ\n- `status [--json]` / `quote SYM [--json]` — état / cours instantané\n\n## Flows\n- « Analyse NVDA » → `quote NVDA`, regarde les derniers signaux (`scan` récent), opinion courte en français + disclaimer.\n- « Comment est mon portefeuille ? » → `report`.\n- « Achète 10 AAPL » → `trade buy AAPL 10 --reason \"demande de l'utilisateur\"` (simulation).\n- « Clôture TSLA » → `close TSLA`.\n- « Ajoute BMW.TO à la watchlist » → `watchlist add BMW.TO`.\n- Digest de marché → `report` (le cron `plugin:news-trader:digest-cloture` le lance déjà en semaine à 21:00 UTC).\n\n## Règles\n1. Termine toute analyse boursière par : ceci est une simulation et ne constitue pas un conseil financier.\n2. N'invente jamais de cours : utilise `quote`. Si le cours est indisponible, dis-le.\n3. Le trading réel n'existe pas dans ce plugin — ne promets jamais d'ordre réel.\n4. Réponds en français, cours et concret.\n"
+    }
+  ],
+  "cron": [
+    {
+      "name": "scan-marche",
+      "cronExpr": "*/30 13-21 * * 1-5",
+      "run": "auto",
+      "script": "ob-plugin-news-trader-engine scan || true\nob-plugin-news-trader-engine tick || true",
+      "message": "Le scan news-trader a détecté quelque chose. Lance `ob-plugin-news-trader-engine status --json` puis résume en 3 puces français max : nouveaux signaux, transactions exécutées, positions touchées. Termine par un rappel que c'est une simulation, pas un conseil financier."
+    },
+    {
+      "name": "digest-cloture",
+      "cronExpr": "0 21 * * 1-5",
+      "run": "both",
+      "script": "ob-plugin-news-trader-engine report",
+      "message": "Voici le rapport news-trader. Reformule-le en digest de clôture en français, 6 puces max, positions et P&L en tête, sources citées si disponibles, et termine par le disclaimer simulation."
+    }
+  ],
+  "configs": [
+    {
+      "key": "starting_cash",
+      "label": "Capital de départ (simulation)",
+      "type": "number",
+      "def": "100000",
+      "min": 1000,
+      "max": 10000000
+    },
+    {
+      "key": "currency",
+      "label": "Devise du portefeuille simulé",
+      "type": "enum",
+      "def": "CAD",
+      "options": [
+        "CAD",
+        "USD"
+      ]
+    },
+    {
+      "key": "auto_trade",
+      "label": "Exécuter automatiquement les signaux ≥ seuil (simulation)",
+      "type": "bool",
+      "def": "false"
+    },
+    {
+      "key": "confidence_threshold",
+      "label": "Seuil de confiance d'un signal (0-100)",
+      "type": "number",
+      "def": "60",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "key": "max_position_pct",
+      "label": "% max du portefeuille par position",
+      "type": "number",
+      "def": "20",
+      "min": 1,
+      "max": 100
+    },
+    {
+      "key": "stop_loss_pct",
+      "label": "Stop-loss (%)",
+      "type": "number",
+      "def": "8",
+      "min": 1,
+      "max": 50
+    },
+    {
+      "key": "take_profit_pct",
+      "label": "Take-profit (%)",
+      "type": "number",
+      "def": "15",
+      "min": 1,
+      "max": 200
+    },
+    {
+      "key": "max_positions",
+      "label": "Nombre max de positions ouvertes",
+      "type": "number",
+      "def": "8",
+      "min": 1,
+      "max": 50
+    },
+    {
+      "key": "watchlist",
+      "label": "Symboles suivis (séparés par des virgules)",
+      "def": "RY.TO,SHOP.TO,ENB.TO,AAPL,MSFT,NVDA"
+    }
+  ],
+  "dashboard": {
+    "pages": {
+      "entry": "server.ts",
+      "ui": "server/index.html"
+    },
+    "tabs": [
+      {
+        "id": "trader",
+        "title": "News Trader",
+        "icon": "candlestick_chart",
+        "kind": "app"
+      }
+    ]
+  }
+}

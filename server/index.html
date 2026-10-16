@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>News Trader — Simulation</title>
+<script>
+(function () {
+  var q = "";
+  try { q = new URLSearchParams(location.search).get("theme") || ""; } catch (e) {}
+  if (q !== "light" && q !== "dark") {
+    try { q = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; }
+    catch (e) { q = "light"; }
+  }
+  document.documentElement.setAttribute("data-theme", q);
+  try {
+    matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function (e) {
+      var t = "";
+      try { t = new URLSearchParams(location.search).get("theme") || ""; } catch (err) {}
+      if (t !== "light" && t !== "dark") document.documentElement.setAttribute("data-theme", e.matches ? "dark" : "light");
+    });
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="./styles.css">
+</head><body><div class="wrap">
+<h1>News Trader <span id="mktpill" class="pill closed">—</span><span id="autopill" class="pill" style="display:none">AUTO</span></h1>
+<div class="sub">Simulation pilotée par les actualités — aucun argent réel. <span id="upd"></span></div>
+
+<div class="grid">
+  <div class="card"><div class="l">Valeur du portefeuille</div><div class="v" id="pv">—</div></div>
+  <div class="card"><div class="l">P&amp;L total</div><div class="v" id="pnl">—</div></div>
+  <div class="card"><div class="l">Cash disponible</div><div class="v" id="cash">—</div></div>
+  <div class="card"><div class="l">Positions</div><div class="v" id="npos">—</div></div>
+</div>
+
+<div class="bar">
+  <button class="primary" id="bscan">⚡ Scanner les nouvelles</button>
+  <button id="btick">↻ Mettre à jour les cours</button>
+  <button class="danger" id="breset">Réinitialiser</button>
+  <input id="winput" placeholder="SYM (ex. BMW.TO)" style="width:150px"><button id="badd">+ Suivre</button>
+</div>
+<div id="msg"></div>
+
+<div class="chips" id="chips"></div>
+
+<h2>Positions ouvertes</h2>
+<div class="card" style="padding:0 14px"><table id="tpos"></table></div>
+
+<h2>Signaux récents</h2>
+<div class="card" id="sigs" style="padding:4px 14px"></div>
+
+<h2>Transactions</h2>
+<div class="card" style="padding:0 14px"><table id="ttr"></table></div>
+
+<div class="disclaimer">⚠ Simulation (paper trading) — ne constitue pas un conseil financier. Les signaux proviennent de règles automatiques sur des nouvelles publiques ; vérifie avant d'investir ton propre argent.</div>
+</div>
+<script type="module" src="./app.ts"></script></body></html>
