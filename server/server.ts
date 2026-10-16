@@ -121,7 +121,9 @@ function authed(req: Request): boolean {
       return a === "127.0.0.1" || a === "::1";
     } catch { return false; }
   }
-  return new URL(req.url).searchParams.get("t") === TOKEN;
+  // Pas de token en query ?t= (review security 2026-10-16 : fuite via historique, logs et
+  // Referer des liens sortants) — le header x-open-bot-page-token est le seul canal.
+  return false;
 }
 
 

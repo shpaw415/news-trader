@@ -38,7 +38,7 @@ console.log("Cas 1 — API pure");
   const st = await (await api("/api/state")).json();
   check("/api/state avec token → JSON portefeuille", !!st && typeof st === "object" && "portfolio" in st);
   const qtok = await fetch(new URL(`/api/state?t=${encodeURIComponent(TOKEN)}`, BASE));
-  check("/api/state token par query → 200", TOKEN ? qtok.status === 200 : true);
+  check("/api/state token par query → refusé (review 2026-10-16 : plus de token en URL)", TOKEN ? qtok.status === 403 : true);
 }
 
 // ------------------------------------------------------------ UI headless
@@ -49,7 +49,13 @@ const doc = win.document as any;
 doc.write(html);
 
 const realFetch = globalThis.fetch.bind(globalThis);
-(win as any).fetch = (input: any, init?: any) => realFetch(new URL(String(input), BASE), init);
+(win as any).fetch = (input: any, init?: any) => {
+  // Le header de token est requis sur les appels API depuis la page (review 2026-10-16 :
+  // plus de token en query ?t=) — le stub happy-dom l'injecte comme le fait le dashboard.
+  const headers = new Headers(init?.headers);
+  if (TOKEN) headers.set("x-open-bot-page-token", TOKEN);
+  return realFetch(new URL(String(input), BASE), { ...init, headers });
+};
 console.log("  [debug] location.search =", win.location.search.replace(/t=[^&]*/, "t=***"));
 const scripts = [...doc.querySelectorAll("script")].map((s: any) => s.textContent).join("\n;");
 try {
